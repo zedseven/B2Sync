@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Diagnostics.Eventing.Reader;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using B2Sync.Properties;
+using KeePass.DataExchange;
 using KeePass.Forms;
 using KeePass.Plugins;
 using KeePassLib;
@@ -14,12 +16,15 @@ namespace B2Sync
 		private IPluginHost _pluginHost;
 
 		private Configuration _config;
+		private Synchronization _sync;
 
 		public override bool Initialize(IPluginHost host)
 		{
 			if (host == null) return false;
+
 			_pluginHost = host;
 			_config = new Configuration(_pluginHost.CustomConfig);
+			_sync = new Synchronization(_config);
 
 			_pluginHost.MainWindow.FileSaved += OnFileSaved;
 
@@ -42,11 +47,19 @@ namespace B2Sync
 			};
 			tsmi.Click += OnOptionsClicked;
 
-			ToolStripMenuItem tsmidd = new ToolStripMenuItem
+			ToolStripMenuItem tsmirc = new ToolStripMenuItem
 			{
-				Text = "Set Application Key"
+				Text = "(Re)connect to B2"
 			};
-			tsmi.DropDownItems.Add(tsmidd);
+			tsmirc.Click += OnReconnectClicked;
+			tsmi.DropDownItems.Add(tsmirc);
+
+			ToolStripMenuItem tsmis = new ToolStripMenuItem
+			{
+				Text = "Synchronize DB with B2"
+			};
+			tsmirc.Click += OnSyncClicked;
+			tsmi.DropDownItems.Add(tsmis);
 
 			return tsmi;
 		}
@@ -54,7 +67,50 @@ namespace B2Sync
 		private void OnOptionsClicked(object sender, EventArgs e)
 		{
 			// Called when the menu item is clicked
-			//_pluginHost.Database.MergeIn(EventLogLink, PwMergeMethod.Synchronize);
+			OptionsForm optionsForm = new OptionsForm(this, _config);
+			if (optionsForm.ShowDialog() != DialogResult.OK)
+				return;
+		}
+
+		private void OnReconnectClicked(object sender, EventArgs e)
+		{
+			// Called when the menu item is clicked
+			_sync.InitClient();
+		}
+
+		private void OnSyncClicked(object sender, EventArgs e)
+		{
+			// Called when the menu item is clicked
+			//Task.Run(_sync.UploadDbAsync(_pluginHost.Database);
+			if(_sync.UploadDbAsync(_pluginHost.Database).Result)
+				MessageService.ShowInfo("B2Sync", "Database synced successfully.");
+			else
+				MessageService.ShowWarning("B2Sync", "Database sync failed.");
+		}
+
+		public void OptionsFormTextChanged(object sender, EventArgs e)
+		{
+			if (sender.GetType() != typeof(TextBox))
+				return;
+
+			TextBox textBox = (TextBox) sender;
+			switch (textBox.Name)
+			{
+				case "accountIdInput":
+					_config.AccountId = textBox.Text;
+					break;
+				case "keyIdInput":
+					_config.KeyId = textBox.Text;
+					break;
+				case "applicationKeyInput":
+					_config.ApplicationKey = textBox.Text;
+					break;
+				case "bucketIdInput":
+					_config.BucketId = textBox.Text;
+					break;
+				default:
+					return;
+			}
 		}
 
 		private void OnFileSaved(object sender, FileSavedEventArgs e)
