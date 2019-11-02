@@ -13,6 +13,8 @@ namespace B2Sync
 
 		private Configuration _config;
 
+		//TODO: Add metadata tags to methods and use more descriptive variable names
+
 		public override bool Initialize(IPluginHost host)
 		{
 			if (host == null) return false;
@@ -35,6 +37,8 @@ namespace B2Sync
 		{
 			// Provide a menu item for the main location(s)
 			if (t != PluginMenuType.Main) return null; // No menu items in other locations
+
+			//TODO: Move all const strings like below into Resources
 
 			ToolStripMenuItem tsmi = new ToolStripMenuItem
 			{
@@ -96,7 +100,7 @@ namespace B2Sync
 		{
 			// Called when the menu item is clicked
 			//Task.Run(_sync.UploadDbAsync(_pHost.Database);
-			await Synchronization.UploadDbAsync(_pHost.Database);
+			await Synchronization.SynchronizeDbAsync(_pHost);
 			/*if(Synchronization.UploadDb(_pHost.Database))
 				MessageService.ShowInfo("B2Sync", "Database synced successfully.");
 			else
