@@ -1,6 +1,4 @@
-﻿using System;
-using KeePass.App.Configuration;
-using KeePassLib.Utility;
+﻿using KeePass.App.Configuration;
 
 namespace B2Sync
 {
@@ -10,28 +8,34 @@ namespace B2Sync
 		private const string keyIdName = "B2SyncKeyId";
 		private const string applicationKeyName = "B2SyncApplicationKey";
 		private const string bucketIdName = "B2SyncBucketId";
+		private const string syncOnSaveName = "B2SyncSyncOnSave";
 
 		private AceCustomConfig _config;
 
 		public string AccountId
 		{
-			get => _config.GetString(accountIdName);
+			get => _config.GetString(accountIdName, "");
 			set => _config.SetString(accountIdName, value);
 		}
 		public string KeyId
 		{
-			get => _config.GetString(keyIdName);
+			get => _config.GetString(keyIdName, "");
 			set => _config.SetString(keyIdName, value);
 		}
 		public string ApplicationKey
 		{
-			get => _config.GetString(applicationKeyName);
+			get => _config.GetString(applicationKeyName, "");
 			set => _config.SetString(applicationKeyName, value);
 		}
 		public string BucketId
 		{
-			get => _config.GetString(bucketIdName);
+			get => _config.GetString(bucketIdName, "");
 			set => _config.SetString(bucketIdName, value);
+		}
+		public bool SyncOnSave
+		{
+			get => _config.GetBool(syncOnSaveName, false);
+			set => _config.SetBool(syncOnSaveName, value);
 		}
 
 		public Configuration(AceCustomConfig config)
@@ -44,6 +48,7 @@ namespace B2Sync
 			_config.SetString(keyIdName, "");
 			_config.SetString(applicationKeyName, "");
 			_config.SetString(bucketIdName, "");
+			_config.SetBool(syncOnSaveName, false);
 		}
 	}
 }

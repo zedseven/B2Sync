@@ -128,7 +128,7 @@
 			this.Controls.Add(this.label1);
 			this.Controls.Add(this.accountIdInput);
 			this.Name = "OptionsForm";
-			this.Text = "OptionsForm";
+			this.Text = "B2Sync Options";
 			this.Load += new System.EventHandler(this.OptionsForm_Load);
 			this.ResumeLayout(false);
 			this.PerformLayout();

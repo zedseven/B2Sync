@@ -1,28 +1,33 @@
-﻿using System;
-using B2Net;
+﻿using B2Net;
 using B2Net.Models;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using KeePassLib;
-using System.IO;
 using KeePass.DataExchange;
 using KeePass.Plugins;
+using KeePassLib;
 using KeePassLib.Serialization;
 using KeePassLib.Utility;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace B2Sync
 {
-	public class Synchronization
+	public static class Synchronization
 	{
-		private B2Client _client;
-		private Configuration _config;
+		private static B2Client _client;
+		private static Configuration _config;
 
-		public bool Connected { get; private set; } = false;
+		public static bool Initialized { get; private set; } = false;
+		public static bool Connected { get; private set; } = false;
 
-		public Synchronization(Configuration config)
+		public static void Init(Configuration config)
 		{
+			if(Initialized) return;
+
 			_config = config;
+
+			Initialized = true;
 
 			if (_config.AccountId == null || _config.KeyId == null || _config.ApplicationKey == null || _config.BucketId == null ||
 				_config.AccountId.Length <= 0 || _config.KeyId.Length <= 0 || _config.ApplicationKey.Length <= 0 || _config.BucketId.Length <= 0) return;
@@ -30,7 +35,7 @@ namespace B2Sync
 			InitClient();
 		}
 
-		public bool InitClient()
+		public static bool InitClient()
 		{
 			Connected = false;
 
@@ -40,11 +45,13 @@ namespace B2Sync
 				KeyId = _config.KeyId,
 				ApplicationKey = _config.ApplicationKey,
 				BucketId = _config.BucketId,
-				PersistBucket = true
+				PersistBucket = true,
+				RequestTimeout = 100
 			};
 			try
 			{
 				_client = new B2Client(B2Client.Authorize(options));
+				//_client = new B2Client(_config.AccountId, _config.ApplicationKey, _config.KeyId);
 			}
 			catch (Exception e)
 			{
@@ -64,7 +71,7 @@ namespace B2Sync
 			return true;
 		}
 
-		public async Task<string> DownloadDbAsync(string dbName)
+		public static async Task<string> DownloadDbAsync(string dbName)
 		{
 			if (!Connected) return null;
 
@@ -72,41 +79,65 @@ namespace B2Sync
 			B2Bucket bucket = buckets.Find(b => b.BucketId == _config.BucketId);
 			B2File file = await _client.Files.DownloadByName(dbName, bucket.BucketName);
 			string tempPath = Path.Combine(Path.GetTempPath(), "KeePass", "B2Sync", file.FileName);
-			using (FileStream stream = File.OpenWrite(tempPath))
-				stream.Write(file.FileData, 0, file.FileData.Length);
+			using (MemoryStream ms = new MemoryStream(file.FileData))
+			{
+				using (FileStream fs = File.OpenWrite(tempPath))
+				{
+					//fs.Write(file.FileData, 0, file.FileData.Length);
+					ms.CopyTo(fs);
+					fs.Flush(true);
+				}
+			}
 			return tempPath;
 		}
 
-		public async Task<bool> UploadDbAsync(PwDatabase localDb)
+		public static string DownloadDb(string dbName) => DownloadDbAsync(dbName).Result;
+
+		public static async Task<bool> UploadDbAsync(PwDatabase localDb)
 		{
 			if (!Connected) return false;
 
+			Interface.UpdateStatus("Uploading database...");
+			Interface.ShowWorkingBar();
+
 			string localPath = localDb.IOConnectionInfo.Path;
 			byte[] fileData;
-			using (FileStream fileStream = File.OpenRead(localPath))
+			using (FileStream fs = File.OpenRead(localPath))
 			{
-				if (!fileStream.CanRead)
+				if (!fs.CanRead)
 					return false;
-				
-				fileData = new byte[fileStream.Length];
-				const int chunkSize = 128;
-				int bytesRead = 0;
-				int lastRead;
-				do
+
+				using (MemoryStream ms = new MemoryStream())
 				{
-					lastRead = fileStream.Read(fileData, bytesRead, chunkSize);
-					bytesRead += lastRead;
-				} while (lastRead > 0);
+					fs.CopyTo(ms);
+					fileData = ms.ToArray();
+				}
 			}
 
-			List<B2Bucket> buckets = await _client.Buckets.GetList();
-			B2Bucket bucket = buckets.Find(b => b.BucketId == _config.BucketId);
-			B2File file = await _client.Files.Upload(fileData, Path.GetFileName(localPath), _config.BucketId);
+			try
+			{
+				MessageService.ShowInfo("B2Sync", "Loaded local database into memory.", "Uploading.");
+				//B2File file = await _client.Files.Upload(fileData, Path.GetFileName(localPath), _config.BucketId);
+				B2UploadUrl uploadUrl = await _client.Files.GetUploadUrl(_config.BucketId);
+				MessageService.ShowInfo("B2Sync", "Got upload URL:", uploadUrl.UploadUrl, "Local Path:", localPath);
+				B2File file = await _client.Files.Upload(fileData, Path.GetFileName(localPath), uploadUrl, true,
+					_config.BucketId);
+				MessageService.ShowInfo("B2Sync", "File uploaded successfully.", "File SHA1: " + file.ContentSHA1);
+			}
+			catch (Exception e)
+			{
+				MessageService.ShowFatal("B2Sync", "Exception:", e.Message, e.StackTrace, e.InnerException?.Message, e.InnerException?.StackTrace);
+			}
 
-			return file != null;
+			Interface.HideWorkingBar();
+			Interface.UpdateStatus("Database upload successful.");
+
+			return true;
 		}
 
-		public async Task<bool> SynchronizeDbAsync(IPluginHost host)
+		public static bool UploadDb(PwDatabase localDb) => UploadDbAsync(localDb).Result;
+
+		public static async Task<bool> SynchronizeDbAsync(IPluginHost host)
 		{
 			if(!Connected) return false;
 
@@ -118,5 +149,7 @@ namespace B2Sync
 			bool? importResult = ImportUtil.Import(sourceDb, formatter, new[] { connInfo }, true, host.MainWindow, false, host.MainWindow);
 			return importResult.GetValueOrDefault(false);
 		}
+
+		public static bool SynchronizeDb(IPluginHost host) => SynchronizeDbAsync(host).Result;
 	}
 }

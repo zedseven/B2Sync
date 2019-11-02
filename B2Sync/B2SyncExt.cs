@@ -1,32 +1,28 @@
-﻿using System;
-using System.Diagnostics.Eventing.Reader;
-using System.Threading.Tasks;
-using System.Windows.Forms;
-using B2Sync.Properties;
-using KeePass.DataExchange;
+﻿using B2Sync.Properties;
 using KeePass.Forms;
 using KeePass.Plugins;
-using KeePassLib;
 using KeePassLib.Utility;
+using System;
+using System.Windows.Forms;
 
 namespace B2Sync
 {
 	public sealed class B2SyncExt : Plugin
 	{
-		private IPluginHost _pluginHost;
+		private IPluginHost _pHost;
 
 		private Configuration _config;
-		private Synchronization _sync;
 
 		public override bool Initialize(IPluginHost host)
 		{
 			if (host == null) return false;
 
-			_pluginHost = host;
-			_config = new Configuration(_pluginHost.CustomConfig);
-			_sync = new Synchronization(_config);
+			_pHost = host;
+			_config = new Configuration(_pHost.CustomConfig);
+			Interface.Init(this, _pHost);
+			Synchronization.Init(_config);
 
-			_pluginHost.MainWindow.FileSaved += OnFileSaved;
+			_pHost.MainWindow.FileSaved += OnFileSaved;
 
 			return true;
 		}
@@ -45,20 +41,44 @@ namespace B2Sync
 				Text = "B2Sync Options",
 				Image = Resources.MenuIcon
 			};
-			tsmi.Click += OnOptionsClicked;
-
-			ToolStripMenuItem tsmirc = new ToolStripMenuItem
-			{
-				Text = "(Re)connect to B2"
-			};
-			tsmirc.Click += OnReconnectClicked;
-			tsmi.DropDownItems.Add(tsmirc);
 
 			ToolStripMenuItem tsmis = new ToolStripMenuItem
 			{
 				Text = "Synchronize DB with B2"
 			};
-			tsmirc.Click += OnSyncClicked;
+			tsmis.Click += OnSyncClicked;
+			tsmi.DropDownItems.Add(tsmis);
+
+			ToolStripMenuItem tsmirc = new ToolStripMenuItem
+			{
+				Text = "(Re)connect to B2"
+			};
+			tsmirc.Click += delegate (object sender, EventArgs e)
+			{
+				Synchronization.InitClient();
+				tsmis.Enabled = Synchronization.Connected;
+			};
+			tsmi.DropDownItems.Add(tsmirc);
+
+			ToolStripMenuItem tsmisos = new ToolStripMenuItem
+			{
+				Text = "Synchronize on Save",
+				Checked = _config.SyncOnSave
+			};
+			tsmisos.Click += delegate(object sender, EventArgs e)
+			{
+				_config.SyncOnSave = !_config.SyncOnSave;
+				((ToolStripMenuItem) sender).Checked = _config.SyncOnSave;
+			};
+			tsmi.DropDownItems.Add(tsmisos);
+
+			ToolStripMenuItem tsmio = new ToolStripMenuItem
+			{
+				Text = "Configure B2 Keys..."
+			};
+			tsmio.Click += OnOptionsClicked;
+			tsmi.DropDownItems.Add(tsmio);
+
 			tsmi.DropDownItems.Add(tsmis);
 
 			return tsmi;
@@ -72,20 +92,15 @@ namespace B2Sync
 				return;
 		}
 
-		private void OnReconnectClicked(object sender, EventArgs e)
+		private async void OnSyncClicked(object sender, EventArgs e)
 		{
 			// Called when the menu item is clicked
-			_sync.InitClient();
-		}
-
-		private void OnSyncClicked(object sender, EventArgs e)
-		{
-			// Called when the menu item is clicked
-			//Task.Run(_sync.UploadDbAsync(_pluginHost.Database);
-			if(_sync.UploadDbAsync(_pluginHost.Database).Result)
+			//Task.Run(_sync.UploadDbAsync(_pHost.Database);
+			await Synchronization.UploadDbAsync(_pHost.Database);
+			/*if(Synchronization.UploadDb(_pHost.Database))
 				MessageService.ShowInfo("B2Sync", "Database synced successfully.");
 			else
-				MessageService.ShowWarning("B2Sync", "Database sync failed.");
+				MessageService.ShowWarning("B2Sync", "Database sync failed.");*/
 		}
 
 		public void OptionsFormTextChanged(object sender, EventArgs e)
@@ -116,8 +131,12 @@ namespace B2Sync
 		private void OnFileSaved(object sender, FileSavedEventArgs e)
 		{
 			MessageService.ShowInfo("B2Sync has been notified that the user tried to save to the following file:",
-				e.Database.IOConnectionInfo.Path, "Result: " + (e.Success ? "success." : "failed.")
-				                                  , _pluginHost.Database.Name);
+				e.Database.IOConnectionInfo.Path, "Result: " + (e.Success ? "success." : "failed."));
+
+			if (!_config.SyncOnSave) return;
+			if(!Synchronization.Connected)
+				MessageService.ShowWarning("B2Sync", "B2Sync is set to synchronize on DB save, but it is not connected.");
+			Synchronization.SynchronizeDb(_pHost);
 		}
 	}
 }

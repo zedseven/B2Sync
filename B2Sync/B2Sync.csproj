@@ -35,7 +35,7 @@
       <HintPath>..\packages\B2Net.0.7.0\lib\net45\B2.Net.dll</HintPath>
     </Reference>
     <Reference Include="KeePass">
-      <HintPath>..\..\..\..\Downloads\KeePass-2.43\KeePass.exe</HintPath>
+      <HintPath>F:\Main Windows Folders\Downloads\KeePass-2.43\KeePass.exe</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=9.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\packages\Newtonsoft.Json.9.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
@@ -54,6 +54,7 @@
   <ItemGroup>
     <Compile Include="B2SyncExt.cs" />
     <Compile Include="Configuration.cs" />
+    <Compile Include="Interface.cs" />
     <Compile Include="OptionsForm.cs">
       <SubType>Form</SubType>
     </Compile>
