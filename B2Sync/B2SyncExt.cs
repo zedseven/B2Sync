@@ -138,7 +138,7 @@ namespace B2Sync
 			MessageService.ShowInfo("B2Sync has been notified that the user tried to save to the following file:",
 				e.Database.IOConnectionInfo.Path, "Result: " + (e.Success ? "success." : "failed."));
 
-			if (!_config.SyncOnSave) return;
+			if (!_config.SyncOnSave || Synchronization.Synchronizing) return;
 			if(!Synchronization.Connected)
 				MessageService.ShowWarning("B2Sync", "B2Sync is set to synchronize on DB save, but it is not connected.");
 			Synchronization.SynchronizeDb(_pHost);

@@ -6,8 +6,7 @@ using KeePassLib;
 using KeePassLib.Serialization;
 using KeePassLib.Utility;
 using System;
-using System.Collections.Generic;
-using System.IO;
+using System.IO;1
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -18,8 +17,10 @@ namespace B2Sync
 		private static B2Client _client;
 		private static Configuration _config;
 
-		public static bool Initialized { get; private set; } = false;
-		public static bool Connected { get; private set; } = false;
+		public static bool Initialized { get; private set; }
+		public static bool Connected { get; private set; }
+
+		public static bool Synchronizing { get; private set; }
 
 		public static void Init(Configuration config)
 		{
@@ -167,10 +168,12 @@ namespace B2Sync
 				IOConnectionInfo connInfo = IOConnectionInfo.FromPath(remoteDbPath);
 				FileFormatProvider formatter = host.FileFormatPool.Find("KeePass KDBX (2.x)");
 
-				//TODO: Disable sync-on-save for the duration of the import and remove from recent files
+				Synchronizing = true;
 
 				bool? importResult = ImportUtil.Import(sourceDb, formatter, new[] {connInfo}, true, host.MainWindow,
 					false, host.MainWindow);
+
+				Synchronizing = false;
 
 				//Since the Import operation automatically adds it to the list of recent files, remove it from the list afterwards
 				host.MainWindow.FileMruList.RemoveItem(remoteDbPath);
