@@ -41,6 +41,7 @@ namespace B2Sync
 		{
 			Connected = false;
 
+			//TODO: Prune any unnecessary credentials from here and OptionsForm.cs
 			B2Options options = new B2Options
 			{
 				AccountId = _config.AccountId,

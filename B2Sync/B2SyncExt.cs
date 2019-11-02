@@ -39,6 +39,7 @@ namespace B2Sync
 			if (t != PluginMenuType.Main) return null; // No menu items in other locations
 
 			//TODO: Move all const strings like below into Resources
+			//TODO: Add another option about maintaining version history on B2
 
 			ToolStripMenuItem tsmi = new ToolStripMenuItem
 			{
