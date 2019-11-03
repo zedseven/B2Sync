@@ -6,26 +6,39 @@ using KeePassLib;
 using KeePassLib.Serialization;
 using KeePassLib.Utility;
 using System;
-using System.IO;1
+using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 
 namespace B2Sync
 {
 	public static class Synchronization
 	{
+		private static B2SyncExt _ext;
 		private static B2Client _client;
 		private static Configuration _config;
 
 		public static bool Initialized { get; private set; }
-		public static bool Connected { get; private set; }
+
+		private static bool _connected;
+		public static bool Connected
+		{
+			get => _connected;
+			private set
+			{
+				_connected = value;
+				_ext.UpdateConnectedIndicators();
+			}
+		}
 
 		public static bool Synchronizing { get; private set; }
 
-		public static void Init(Configuration config)
+		public static void Init(B2SyncExt ext, Configuration config)
 		{
 			if(Initialized) return;
 
+			_ext = ext;
 			_config = config;
 
 			Initialized = true;
@@ -72,7 +85,7 @@ namespace B2Sync
 
 			//TODO: Perform more rigorous tests to ensure that the provided credentials will be usable
 
-			MessageService.ShowInfo("B2Sync", "Connected to B2 successfully.");
+			Interface.UpdateStatus("Connected to B2 successfully.");
 
 			Connected = true;
 			return true;
@@ -111,8 +124,6 @@ namespace B2Sync
 			return tempPath;
 		}
 
-		public static string DownloadDb(string dbName) => DownloadDbAsync(dbName).Result;
-
 		public static async Task<bool> UploadDbAsync(PwDatabase localDb)
 		{
 			if (!Connected) return false;
@@ -150,11 +161,11 @@ namespace B2Sync
 			return true;
 		}
 
-		public static bool UploadDb(PwDatabase localDb) => UploadDbAsync(localDb).Result;
-
 		public static async Task<bool> SynchronizeDbAsync(IPluginHost host)
 		{
 			if(!Connected) return false;
+
+			Synchronizing = true;
 
 			Interface.UpdateStatus("Synchronizing database with B2...");
 
@@ -162,21 +173,24 @@ namespace B2Sync
 			PwDatabase sourceDb = host.Database;
 			string remoteDbPath = await DownloadDbAsync(sourceDb.Name + ".kdbx");
 
+			bool localMatchesRemote = true;
+
 			//If the file exists on the remote server, synchronize it with the local copy
 			if(remoteDbPath != null)
 			{
 				IOConnectionInfo connInfo = IOConnectionInfo.FromPath(remoteDbPath);
 				FileFormatProvider formatter = host.FileFormatPool.Find("KeePass KDBX (2.x)");
 
-				Synchronizing = true;
+				//TODO: Disable sync-on-save for the duration of the import and remove from recent files
 
 				bool? importResult = ImportUtil.Import(sourceDb, formatter, new[] {connInfo}, true, host.MainWindow,
 					false, host.MainWindow);
 
-				Synchronizing = false;
-
 				//Since the Import operation automatically adds it to the list of recent files, remove it from the list afterwards
 				host.MainWindow.FileMruList.RemoveItem(remoteDbPath);
+
+				if (HashFileOnDisk(remoteDbPath) != HashFileOnDisk(sourceDb.IOConnectionInfo.Path))
+					localMatchesRemote = false;
 
 				//Remove the copy of the database from the temp location
 				File.Delete(remoteDbPath);
@@ -186,13 +200,24 @@ namespace B2Sync
 			}
 
 			//Upload the local copy to the server once all synchronization is completed
-			bool uploadResult = await UploadDbAsync(sourceDb);
+			bool uploadResult = !localMatchesRemote && await UploadDbAsync(sourceDb);
 
 			Interface.UpdateStatus("Synchronized database with B2 successfully.");
+
+			Synchronizing = false;
 
 			return uploadResult;
 		}
 
-		public static bool SynchronizeDb(IPluginHost host) => SynchronizeDbAsync(host).Result;
+		private static string Hash(byte[] input)
+		{
+			using (SHA1Managed sha1 = new SHA1Managed())
+			{
+				byte[] hash = sha1.ComputeHash(input);
+				return string.Concat(hash.Select(b => b.ToString("x2")));
+			}
+		}
+
+		private static string HashFileOnDisk(string path) => Hash(File.ReadAllBytes(path));
 	}
 }

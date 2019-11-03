@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using KeePass.Plugins;
+﻿using KeePass.Plugins;
 
 namespace B2Sync
 {
@@ -24,7 +19,7 @@ namespace B2Sync
 			Initialized = true;
 		}
 
-		public static void UpdateStatus(string message) => _pHost.MainWindow.SetStatusEx(message);
+		public static void UpdateStatus(string message) => _pHost.MainWindow.SetStatusEx("B2Sync: " + message);
 
 		public static void ShowWorkingBar() => _pHost.MainWindow.MainProgressBar.Visible = true;
 

@@ -3,6 +3,7 @@ using KeePass.Forms;
 using KeePass.Plugins;
 using KeePassLib.Utility;
 using System;
+using System.Collections.Generic;
 using System.Windows.Forms;
 
 namespace B2Sync
@@ -13,6 +14,8 @@ namespace B2Sync
 
 		private Configuration _config;
 
+		private readonly List<ToolStripMenuItem> _connectedIndicators = new List<ToolStripMenuItem>();
+
 		//TODO: Add metadata tags to methods and use more descriptive variable names
 
 		public override bool Initialize(IPluginHost host)
@@ -22,7 +25,7 @@ namespace B2Sync
 			_pHost = host;
 			_config = new Configuration(_pHost.CustomConfig);
 			Interface.Init(this, _pHost);
-			Synchronization.Init(_config);
+			Synchronization.Init(this, _config);
 
 			_pHost.MainWindow.FileSaved += OnFileSaved;
 
@@ -46,6 +49,14 @@ namespace B2Sync
 				Text = "B2Sync Options",
 				Image = Resources.MenuIcon
 			};
+
+			ToolStripMenuItem tsmic = new ToolStripMenuItem
+			{
+				Text = "Connected to B2",
+				Checked = Synchronization.Connected
+			};
+			tsmi.DropDownItems.Add(tsmic);
+			_connectedIndicators.Add(tsmic);
 
 			ToolStripMenuItem tsmis = new ToolStripMenuItem
 			{
@@ -133,7 +144,7 @@ namespace B2Sync
 			}
 		}
 
-		private void OnFileSaved(object sender, FileSavedEventArgs e)
+		private async void OnFileSaved(object sender, FileSavedEventArgs e)
 		{
 			MessageService.ShowInfo("B2Sync has been notified that the user tried to save to the following file:",
 				e.Database.IOConnectionInfo.Path, "Result: " + (e.Success ? "success." : "failed."));
@@ -141,7 +152,14 @@ namespace B2Sync
 			if (!_config.SyncOnSave || Synchronization.Synchronizing) return;
 			if(!Synchronization.Connected)
 				MessageService.ShowWarning("B2Sync", "B2Sync is set to synchronize on DB save, but it is not connected.");
-			Synchronization.SynchronizeDb(_pHost);
+			await Synchronization.SynchronizeDbAsync(_pHost);
+		}
+
+		//The reason this must be handled this way rather than updating a single global indicator is that there is no guarantee there will only be one created
+		public void UpdateConnectedIndicators()
+		{
+			foreach (ToolStripMenuItem ci in _connectedIndicators)
+				ci.Checked = Synchronization.Connected;
 		}
 	}
 }
