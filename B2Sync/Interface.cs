@@ -2,27 +2,28 @@
 
 namespace B2Sync
 {
+	/// <summary>
+	/// Wraps some of the KeePass interface functions so they are more easily accessible and branded with the plugin info.
+	/// </summary>
 	public static class Interface
 	{
-		private static B2SyncExt _ext;
-		private static IPluginHost _pHost;
+		private static IPluginHost _host;
 
-		public static bool Initialized { get; private set; } = false;
+		private static bool Initialized { get; set; }
 
-		public static void Init(B2SyncExt ext, IPluginHost host)
+		public static void Init(IPluginHost host)
 		{
 			if (Initialized) return;
 
-			_ext = ext;
-			_pHost = host;
+			_host = host;
 
 			Initialized = true;
 		}
 
-		public static void UpdateStatus(string message) => _pHost.MainWindow.SetStatusEx("B2Sync: " + message);
-
-		public static void ShowWorkingBar() => _pHost.MainWindow.MainProgressBar.Visible = true;
-
-		public static void HideWorkingBar() => _pHost.MainWindow.MainProgressBar.Visible = false;
+		/// <summary>
+		/// Updates the UI status along the bottom of the window in KeePass with <paramref name="message"/>.
+		/// </summary>
+		/// <param name="message">The message to update the status with.</param>
+		public static void UpdateStatus(string message) => _host.MainWindow.SetStatusEx("B2Sync: " + message);
 	}
 }

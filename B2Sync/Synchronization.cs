@@ -13,94 +13,67 @@ using System.Threading.Tasks;
 
 namespace B2Sync
 {
+	/// <summary>
+	/// Facilitates all of the communication and synchronization with Backblaze B2 systems.
+	/// </summary>
 	public static class Synchronization
 	{
-		private static B2SyncExt _ext;
-		private static B2Client _client;
 		private static Configuration _config;
 
-		public static bool Initialized { get; private set; }
-
-		private static bool _connected;
-		public static bool Connected
-		{
-			get => _connected;
-			private set
-			{
-				_connected = value;
-				_ext.UpdateConnectedIndicators();
-			}
-		}
+		private static bool Initialized { get; set; }
 
 		public static bool Synchronizing { get; private set; }
 
-		public static void Init(B2SyncExt ext, Configuration config)
+		public static void Init(Configuration config)
 		{
 			if(Initialized) return;
 
-			_ext = ext;
 			_config = config;
 
 			Initialized = true;
-
-			if (_config.AccountId == null || _config.KeyId == null || _config.ApplicationKey == null || _config.BucketId == null ||
-				_config.AccountId.Length <= 0 || _config.KeyId.Length <= 0 || _config.ApplicationKey.Length <= 0 || _config.BucketId.Length <= 0) return;
-
-			InitClient();
 		}
 
-		//TODO: Automatically reconnect and test for internet connection
-
-		public static bool InitClient()
+		private static B2Client GetClient()
 		{
-			Connected = false;
+			B2Client client;
 
-			//TODO: Prune any unnecessary credentials from here and OptionsForm.cs
-			B2Options options = new B2Options
-			{
-				AccountId = _config.AccountId,
-				KeyId = _config.KeyId,
-				ApplicationKey = _config.ApplicationKey,
-				BucketId = _config.BucketId,
-				PersistBucket = true,
-				RequestTimeout = 100
-			};
 			try
 			{
-				//_client = new B2Client(B2Client.Authorize(options));
-				_client = new B2Client(_config.KeyId, _config.ApplicationKey);
-				//_client = new B2Client(_config.AccountId, _config.ApplicationKey, _config.KeyId);
+				client = new B2Client(_config.KeyId, _config.ApplicationKey);
 			}
 			catch (Exception e)
 			{
 				Console.WriteLine(e);
 				MessageService.ShowWarning("B2Sync", "An exception occurred when attempting to connect to B2:",
 					e.Message, e.StackTrace, e.InnerException?.Message, e.InnerException?.StackTrace);
-				return false;
+				return null;
 			}
 
-			if (!_client.Capabilities.Capabilities.Contains("readFiles") ||
-			    !_client.Capabilities.Capabilities.Contains("writeFiles"))
-				return false;
+			if (!client.Capabilities.Capabilities.Contains("readFiles") ||
+			    !client.Capabilities.Capabilities.Contains("writeFiles"))
+				return null;
 
 			//TODO: Perform more rigorous tests to ensure that the provided credentials will be usable
 
 			Interface.UpdateStatus("Connected to B2 successfully.");
 
-			Connected = true;
-			return true;
+			return client;
 		}
 
-		public static async Task<string> DownloadDbAsync(string dbName)
+		/// <summary>
+		/// Downloads the database with <paramref name="dbName" /> from the bucket <paramref name="client" /> has access to, and stores it in a directory in the temporary location of the environment.
+		/// </summary>
+		/// <param name="client">The <see cref="B2Client"/> created by <see cref="GetClient"/> with access to a bucket (hopefully containing the DB).</param>
+		/// <param name="dbName">The filename (with extension) of the database to download from the B2 bucket.</param>
+		/// <returns>The filepath where the database was downloaded to temporarily, or <see langword="true">null</see> if the download failed.</returns>
+		public static async Task<string> DownloadDbAsync(B2Client client, string dbName)
 		{
-			if (!Connected) return null;
+			if (client == null) return null;
 
 			Interface.UpdateStatus("Downloading database...");
 
 			//Download to memory
-			//List<B2Bucket> buckets = await _client.Buckets.GetList();
-			//B2Bucket bucket = buckets.Find(b => b.BucketId == _config.BucketId);
-			B2File file = await _client.Files.DownloadByName(dbName, _client.Capabilities.BucketName); //TODO: Investigate if this fails on credentials valid for more than one bucket at a time
+			B2File file = await client.Files.DownloadByName(dbName, client.Capabilities.BucketName); //TODO: Investigate if this fails on credentials valid for more than one bucket at a time
 
 			if (file.Size <= 0) //TODO: Might need to find an alternate way to check for file existence
 				return null;
@@ -124,9 +97,23 @@ namespace B2Sync
 			return tempPath;
 		}
 
-		public static async Task<bool> UploadDbAsync(PwDatabase localDb)
+		/// <summary>
+		/// Downloads the database with <paramref name="dbName" /> from the bucket the plugin configuration allows access to, and stores it in a directory in the temporary location of the environment.
+		/// </summary>
+		/// <param name="dbName">The filename (with extension) of the database to download from the B2 bucket.</param>
+		/// <returns>The filepath where the database was downloaded to temporarily, or <see langword="true">null</see> if the download failed.</returns>
+		public static async Task<string> DownloadDbAsync(string dbName) => await DownloadDbAsync(GetClient(), dbName);
+
+
+		/// <summary>
+		/// Uploads the locally-stored database <paramref name="localDb"/> to the bucket that <paramref name="client"/> has access to.
+		/// </summary>
+		/// <param name="client">The <see cref="B2Client"/> created by <see cref="GetClient"/> with access to a bucket to upload to.</param>
+		/// <param name="localDb">The local database to upload.</param>
+		/// <returns><c>true</c> if the upload was successful, or <c>false</c> otherwise.</returns>
+		public static async Task<bool> UploadDbAsync(B2Client client, PwDatabase localDb)
 		{
-			if (!Connected) return false;
+			if (client == null) return false;
 
 			Interface.UpdateStatus("Uploading database...");
 
@@ -147,8 +134,8 @@ namespace B2Sync
 			try
 			{
 				//B2File file = await _client.Files.Upload(fileData, Path.GetFileName(localPath), _config.BucketId);
-				B2UploadUrl uploadUrl = await _client.Files.GetUploadUrl(_config.BucketId);
-				B2File file = await _client.Files.Upload(fileData, Path.GetFileName(localPath), uploadUrl, true,
+				B2UploadUrl uploadUrl = await client.Files.GetUploadUrl(_config.BucketId);
+				B2File file = await client.Files.Upload(fileData, Path.GetFileName(localPath), uploadUrl, true,
 					_config.BucketId);
 			}
 			catch (Exception e)
@@ -161,9 +148,23 @@ namespace B2Sync
 			return true;
 		}
 
-		public static async Task<bool> SynchronizeDbAsync(IPluginHost host)
+		/// <summary>
+		/// Uploads the locally-stored database <paramref name="localDb"/> to the bucket that plugin configuration allows access to.
+		/// </summary>
+		/// <param name="localDb">The local database to upload.</param>
+		/// <returns><c>true</c> if the upload was successful, or <c>false</c> otherwise.</returns>
+		public static async Task<bool> UploadDbAsync(PwDatabase localDb) => await UploadDbAsync(GetClient(), localDb);
+
+
+		/// <summary>
+		/// Synchronizes the local database that <paramref name="host"/> has open with the database (if any) by the same name stored on the bucket that <paramref name="client"/> has access to.
+		/// </summary>
+		/// <param name="client">The <see cref="B2Client"/> created by <see cref="GetClient"/> with access to a bucket to synchronize with.</param>
+		/// <param name="host">The <see cref="IPluginHost"/> that hosts the currently-running instance of <see cref="B2SyncExt"/>.</param>
+		/// <returns><c>true</c> if the synchronization was successful, or <c>false</c> otherwise.</returns>
+		public static async Task<bool> SynchronizeDbAsync(B2Client client, IPluginHost host)
 		{
-			if(!Connected) return false;
+			if(client == null) return false;
 
 			Synchronizing = true;
 
@@ -171,7 +172,7 @@ namespace B2Sync
 
 			//Download the remote copy
 			PwDatabase sourceDb = host.Database;
-			string remoteDbPath = await DownloadDbAsync(sourceDb.Name + ".kdbx");
+			string remoteDbPath = await DownloadDbAsync(client, sourceDb.Name + ".kdbx");
 
 			bool localMatchesRemote = true;
 
@@ -180,8 +181,6 @@ namespace B2Sync
 			{
 				IOConnectionInfo connInfo = IOConnectionInfo.FromPath(remoteDbPath);
 				FileFormatProvider formatter = host.FileFormatPool.Find("KeePass KDBX (2.x)");
-
-				//TODO: Disable sync-on-save for the duration of the import and remove from recent files
 
 				bool? importResult = ImportUtil.Import(sourceDb, formatter, new[] {connInfo}, true, host.MainWindow,
 					false, host.MainWindow);
@@ -200,7 +199,7 @@ namespace B2Sync
 			}
 
 			//Upload the local copy to the server once all synchronization is completed
-			bool uploadResult = !localMatchesRemote && await UploadDbAsync(sourceDb);
+			bool uploadResult = ((!localMatchesRemote || remoteDbPath == null) && await UploadDbAsync(client, sourceDb)) || localMatchesRemote;
 
 			Interface.UpdateStatus("Synchronized database with B2 successfully.");
 
@@ -209,6 +208,20 @@ namespace B2Sync
 			return uploadResult;
 		}
 
+		/// <summary>
+		/// Synchronizes the local database that <paramref name="host"/> has open with the database (if any) by the same name stored on the bucket that plugin configuration allows access to.
+		/// </summary>
+		/// <param name="host">The <see cref="IPluginHost"/> that hosts the currently-running instance of <see cref="B2SyncExt"/>.</param>
+		/// <returns><c>true</c> if the synchronization was successful, or <c>false</c> otherwise.</returns>
+		public static async Task<bool> SynchronizeDbAsync(IPluginHost host)
+			=> await SynchronizeDbAsync(GetClient(), host);
+
+
+		/// <summary>
+		/// Computes the SHA1 hash of the given <paramref name="input"/> in string (hex) format.
+		/// </summary>
+		/// <param name="input">A blob of input data to compute the hash of.</param>
+		/// <returns>The SHA1 hash of <paramref name="input"/> in string (hex) format for quick comparison.</returns>
 		private static string Hash(byte[] input)
 		{
 			using (SHA1Managed sha1 = new SHA1Managed())
@@ -218,6 +231,11 @@ namespace B2Sync
 			}
 		}
 
+		/// <summary>
+		/// Computes the SHA1 hash of the file at <paramref name="path"/> on disk in string (hex) format.
+		/// </summary>
+		/// <param name="path">The location on disk of the file to compute the hash of.</param>
+		/// <returns>The SHA1 hash of the file at <paramref name="path"/> in string (hex) format for quick comparison.</returns>
 		private static string HashFileOnDisk(string path) => Hash(File.ReadAllBytes(path));
 	}
 }

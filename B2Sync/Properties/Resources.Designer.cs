@@ -61,6 +61,51 @@ namespace B2Sync.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to B2Sync Options.
+        /// </summary>
+        internal static string B2SyncExt_GetMenuItem_B2Sync_Options {
+            get {
+                return ResourceManager.GetString("B2SyncExt_GetMenuItem_B2Sync_Options", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Configure B2 Keys....
+        /// </summary>
+        internal static string B2SyncExt_GetMenuItem_Configure_B2_Keys {
+            get {
+                return ResourceManager.GetString("B2SyncExt_GetMenuItem_Configure_B2_Keys", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Synchronize DB with B2.
+        /// </summary>
+        internal static string B2SyncExt_GetMenuItem_Synchronize_DB_with_B2 {
+            get {
+                return ResourceManager.GetString("B2SyncExt_GetMenuItem_Synchronize_DB_with_B2", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Synchronize on Load.
+        /// </summary>
+        internal static string B2SyncExt_GetMenuItem_Synchronize_on_Load {
+            get {
+                return ResourceManager.GetString("B2SyncExt_GetMenuItem_Synchronize_on_Load", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Synchronize on Save.
+        /// </summary>
+        internal static string B2SyncExt_GetMenuItem_Synchronize_on_Save {
+            get {
+                return ResourceManager.GetString("B2SyncExt_GetMenuItem_Synchronize_on_Save", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
         internal static System.Drawing.Bitmap MenuIcon {

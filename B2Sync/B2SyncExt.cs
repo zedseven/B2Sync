@@ -1,33 +1,31 @@
 ﻿using B2Sync.Properties;
 using KeePass.Forms;
 using KeePass.Plugins;
-using KeePassLib.Utility;
 using System;
-using System.Collections.Generic;
 using System.Windows.Forms;
 
 namespace B2Sync
 {
+	/// <summary>
+	/// A KeePass plugin that facilitates synchronization of databases with Backblaze B2 buckets.
+	/// </summary>
 	public sealed class B2SyncExt : Plugin
 	{
-		private IPluginHost _pHost;
+		private IPluginHost _host;
 
 		private Configuration _config;
-
-		private readonly List<ToolStripMenuItem> _connectedIndicators = new List<ToolStripMenuItem>();
-
-		//TODO: Add metadata tags to methods and use more descriptive variable names
 
 		public override bool Initialize(IPluginHost host)
 		{
 			if (host == null) return false;
 
-			_pHost = host;
-			_config = new Configuration(_pHost.CustomConfig);
-			Interface.Init(this, _pHost);
-			Synchronization.Init(this, _config);
+			_host = host;
+			_config = new Configuration(_host.CustomConfig);
+			Interface.Init(_host);
+			Synchronization.Init(_config);
 
-			_pHost.MainWindow.FileSaved += OnFileSaved;
+			_host.MainWindow.FileSaved += OnFileSaved;
+			_host.MainWindow.FileOpened += OnFileOpened;
 
 			return true;
 		}
@@ -38,86 +36,65 @@ namespace B2Sync
 
 		public override ToolStripMenuItem GetMenuItem(PluginMenuType t)
 		{
-			// Provide a menu item for the main location(s)
-			if (t != PluginMenuType.Main) return null; // No menu items in other locations
-
-			//TODO: Move all const strings like below into Resources
-			//TODO: Add another option about maintaining version history on B2
+			if (t != PluginMenuType.Main)
+				return null; // No menu items in other locations
 
 			ToolStripMenuItem tsmi = new ToolStripMenuItem
 			{
-				Text = "B2Sync Options",
+				Text = Resources.B2SyncExt_GetMenuItem_B2Sync_Options,
 				Image = Resources.MenuIcon
 			};
 
-			ToolStripMenuItem tsmic = new ToolStripMenuItem
+			ToolStripMenuItem tsmiSync = new ToolStripMenuItem
 			{
-				Text = "Connected to B2",
-				Checked = Synchronization.Connected
+				Text = Resources.B2SyncExt_GetMenuItem_Synchronize_DB_with_B2
 			};
-			tsmi.DropDownItems.Add(tsmic);
-			_connectedIndicators.Add(tsmic);
+			tsmiSync.Click += OnSyncClicked;
 
-			ToolStripMenuItem tsmis = new ToolStripMenuItem
+			ToolStripMenuItem tsmiSyncOnSave = new ToolStripMenuItem
 			{
-				Text = "Synchronize DB with B2"
-			};
-			tsmis.Click += OnSyncClicked;
-			tsmi.DropDownItems.Add(tsmis);
-
-			ToolStripMenuItem tsmirc = new ToolStripMenuItem
-			{
-				Text = "(Re)connect to B2"
-			};
-			tsmirc.Click += delegate (object sender, EventArgs e)
-			{
-				Synchronization.InitClient();
-				tsmis.Enabled = Synchronization.Connected;
-			};
-			tsmi.DropDownItems.Add(tsmirc);
-
-			ToolStripMenuItem tsmisos = new ToolStripMenuItem
-			{
-				Text = "Synchronize on Save",
+				Text = Resources.B2SyncExt_GetMenuItem_Synchronize_on_Save,
 				Checked = _config.SyncOnSave
 			};
-			tsmisos.Click += delegate(object sender, EventArgs e)
+			tsmiSyncOnSave.Click += delegate (object sender, EventArgs e)
 			{
 				_config.SyncOnSave = !_config.SyncOnSave;
 				((ToolStripMenuItem) sender).Checked = _config.SyncOnSave;
 			};
-			tsmi.DropDownItems.Add(tsmisos);
 
-			ToolStripMenuItem tsmio = new ToolStripMenuItem
+			ToolStripMenuItem tsmiSyncOnLoad = new ToolStripMenuItem
 			{
-				Text = "Configure B2 Keys..."
+				Text = Resources.B2SyncExt_GetMenuItem_Synchronize_on_Load,
+				Checked = _config.SyncOnLoad
 			};
-			tsmio.Click += OnOptionsClicked;
-			tsmi.DropDownItems.Add(tsmio);
+			tsmiSyncOnLoad.Click += delegate (object sender, EventArgs e)
+			{
+				_config.SyncOnLoad = !_config.SyncOnLoad;
+				((ToolStripMenuItem) sender).Checked = _config.SyncOnLoad;
+			};
 
-			tsmi.DropDownItems.Add(tsmis);
+			ToolStripMenuItem tsmiKeys = new ToolStripMenuItem
+			{
+				Text = Resources.B2SyncExt_GetMenuItem_Configure_B2_Keys
+			};
+			tsmiKeys.Click += OnOptionsClicked;
+
+			tsmi.DropDownItems.Add(tsmiSync);
+			tsmi.DropDownItems.Add(tsmiSyncOnSave);
+			tsmi.DropDownItems.Add(tsmiSyncOnLoad);
+			tsmi.DropDownItems.Add(tsmiKeys);
 
 			return tsmi;
 		}
 
 		private void OnOptionsClicked(object sender, EventArgs e)
 		{
-			// Called when the menu item is clicked
 			OptionsForm optionsForm = new OptionsForm(this, _config);
-			if (optionsForm.ShowDialog() != DialogResult.OK)
-				return;
+			optionsForm.ShowDialog();
 		}
 
 		private async void OnSyncClicked(object sender, EventArgs e)
-		{
-			// Called when the menu item is clicked
-			//Task.Run(_sync.UploadDbAsync(_pHost.Database);
-			await Synchronization.SynchronizeDbAsync(_pHost);
-			/*if(Synchronization.UploadDb(_pHost.Database))
-				MessageService.ShowInfo("B2Sync", "Database synced successfully.");
-			else
-				MessageService.ShowWarning("B2Sync", "Database sync failed.");*/
-		}
+			=> await Synchronization.SynchronizeDbAsync(_host);
 
 		public void OptionsFormTextChanged(object sender, EventArgs e)
 		{
@@ -127,9 +104,6 @@ namespace B2Sync
 			TextBox textBox = (TextBox) sender;
 			switch (textBox.Name)
 			{
-				case "accountIdInput":
-					_config.AccountId = textBox.Text;
-					break;
 				case "keyIdInput":
 					_config.KeyId = textBox.Text;
 					break;
@@ -146,20 +120,18 @@ namespace B2Sync
 
 		private async void OnFileSaved(object sender, FileSavedEventArgs e)
 		{
-			MessageService.ShowInfo("B2Sync has been notified that the user tried to save to the following file:",
-				e.Database.IOConnectionInfo.Path, "Result: " + (e.Success ? "success." : "failed."));
-
-			if (!_config.SyncOnSave || Synchronization.Synchronizing) return;
-			if(!Synchronization.Connected)
-				MessageService.ShowWarning("B2Sync", "B2Sync is set to synchronize on DB save, but it is not connected.");
-			await Synchronization.SynchronizeDbAsync(_pHost);
+			//Check to make sure the save isn't part of an already-ongoing synchronization to prevent infinite loops
+			if (!_config.SyncOnSave || Synchronization.Synchronizing)
+				return;
+			await Synchronization.SynchronizeDbAsync(_host);
 		}
 
-		//The reason this must be handled this way rather than updating a single global indicator is that there is no guarantee there will only be one created
-		public void UpdateConnectedIndicators()
+		private async void OnFileOpened(object sender, FileOpenedEventArgs e)
 		{
-			foreach (ToolStripMenuItem ci in _connectedIndicators)
-				ci.Checked = Synchronization.Connected;
+			//Check to make sure the load isn't part of an already-ongoing synchronization to prevent infinite loops
+			if (!_config.SyncOnLoad || Synchronization.Synchronizing)
+				return;
+			await Synchronization.SynchronizeDbAsync(_host);
 		}
 	}
 }
