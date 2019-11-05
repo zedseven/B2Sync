@@ -77,20 +77,29 @@ namespace B2Sync
 			{
 				Text = Resources.B2SyncExt_GetMenuItem_Configure_B2_Keys
 			};
-			tsmiKeys.Click += OnOptionsClicked;
+			tsmiKeys.Click += delegate
+			{
+				OptionsForm optionsForm = new OptionsForm(this, _config);
+				optionsForm.ShowDialog();
+			};
+
+			ToolStripMenuItem tsmiDownloadUrl = new ToolStripMenuItem
+			{
+				Text = Resources.B2SyncExt_GetMenuItem_Get_Download_URL
+			};
+			tsmiDownloadUrl.Click += delegate
+			{
+				DownloadURLForm friendlyUrlForm = new DownloadURLForm(_host);
+				friendlyUrlForm.ShowDialog();
+			};
 
 			tsmi.DropDownItems.Add(tsmiSync);
 			tsmi.DropDownItems.Add(tsmiSyncOnSave);
 			tsmi.DropDownItems.Add(tsmiSyncOnLoad);
 			tsmi.DropDownItems.Add(tsmiKeys);
+			tsmi.DropDownItems.Add(tsmiDownloadUrl);
 
 			return tsmi;
-		}
-
-		private void OnOptionsClicked(object sender, EventArgs e)
-		{
-			OptionsForm optionsForm = new OptionsForm(this, _config);
-			optionsForm.ShowDialog();
 		}
 
 		private async void OnSyncClicked(object sender, EventArgs e)

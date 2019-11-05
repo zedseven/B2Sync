@@ -79,6 +79,15 @@ namespace B2Sync.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Get Download URL.
+        /// </summary>
+        internal static string B2SyncExt_GetMenuItem_Get_Download_URL {
+            get {
+                return ResourceManager.GetString("B2SyncExt_GetMenuItem_Get_Download_URL", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Synchronize DB with B2.
         /// </summary>
         internal static string B2SyncExt_GetMenuItem_Synchronize_DB_with_B2 {

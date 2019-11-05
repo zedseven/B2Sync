@@ -68,7 +68,8 @@ namespace B2Sync
 		/// <returns>The filepath where the database was downloaded to temporarily, or <see langword="true">null</see> if the download failed.</returns>
 		public static async Task<string> DownloadDbAsync(B2Client client, string dbName)
 		{
-			if (client == null) return null;
+			if (client == null)
+				return null;
 
 			Interface.UpdateStatus("Downloading database...");
 
@@ -113,7 +114,8 @@ namespace B2Sync
 		/// <returns><c>true</c> if the upload was successful, or <c>false</c> otherwise.</returns>
 		public static async Task<bool> UploadDbAsync(B2Client client, PwDatabase localDb)
 		{
-			if (client == null) return false;
+			if (client == null)
+				return false;
 
 			Interface.UpdateStatus("Uploading database...");
 
@@ -164,7 +166,8 @@ namespace B2Sync
 		/// <returns><c>true</c> if the synchronization was successful, or <c>false</c> otherwise.</returns>
 		public static async Task<bool> SynchronizeDbAsync(B2Client client, IPluginHost host)
 		{
-			if(client == null) return false;
+			if(client == null)
+				return false;
 
 			Synchronizing = true;
 
@@ -174,28 +177,34 @@ namespace B2Sync
 			PwDatabase sourceDb = host.Database;
 			string remoteDbPath = await DownloadDbAsync(client, sourceDb.Name + ".kdbx");
 
+
 			bool localMatchesRemote = true;
 
 			//If the file exists on the remote server, synchronize it with the local copy
 			if(remoteDbPath != null)
 			{
-				IOConnectionInfo connInfo = IOConnectionInfo.FromPath(remoteDbPath);
-				FileFormatProvider formatter = host.FileFormatPool.Find("KeePass KDBX (2.x)");
+				string localHash = HashFileOnDisk(sourceDb.IOConnectionInfo.Path);
+				string remoteHash = HashFileOnDisk(remoteDbPath);
 
-				bool? importResult = ImportUtil.Import(sourceDb, formatter, new[] {connInfo}, true, host.MainWindow,
-					false, host.MainWindow);
+				localMatchesRemote = localHash == remoteHash;
+				MessageService.ShowInfo(localHash, remoteHash);
+				if (!localMatchesRemote)
+				{
+					IOConnectionInfo connInfo = IOConnectionInfo.FromPath(remoteDbPath);
+					FileFormatProvider formatter = host.FileFormatPool.Find("KeePass KDBX (2.x)");
 
-				//Since the Import operation automatically adds it to the list of recent files, remove it from the list afterwards
-				host.MainWindow.FileMruList.RemoveItem(remoteDbPath);
+					bool? importResult = ImportUtil.Import(sourceDb, formatter, new[] {connInfo}, true, host.MainWindow,
+						false, host.MainWindow);
 
-				if (HashFileOnDisk(remoteDbPath) != HashFileOnDisk(sourceDb.IOConnectionInfo.Path))
-					localMatchesRemote = false;
+					//Since the Import operation automatically adds it to the list of recent files, remove it from the list afterwards
+					host.MainWindow.FileMruList.RemoveItem(remoteDbPath);
 
-				//Remove the copy of the database from the temp location
-				File.Delete(remoteDbPath);
+					//Remove the copy of the database from the temp location
+					File.Delete(remoteDbPath);
 
-				if (!importResult.GetValueOrDefault(false))
-					return false;
+					if (!importResult.GetValueOrDefault(false))
+						return false;
+				}
 			}
 
 			//Upload the local copy to the server once all synchronization is completed
@@ -215,6 +224,44 @@ namespace B2Sync
 		/// <returns><c>true</c> if the synchronization was successful, or <c>false</c> otherwise.</returns>
 		public static async Task<bool> SynchronizeDbAsync(IPluginHost host)
 			=> await SynchronizeDbAsync(GetClient(), host);
+
+
+		/// <summary>
+		/// Retrieves the friendly download URL for a database if it exists on B2.
+		/// </summary>
+		/// <param name="client">The <see cref="B2Client"/> created by <see cref="GetClient"/> with access to a bucket (hopefully containing the DB).</param>
+		/// <param name="dbName">The filename (with extension) of the database on the B2 bucket.</param>
+		/// <returns>The friendly download URL of the database on B2, if it exists.</returns>
+		public static string GetFriendlyUrl(B2Client client, string dbName)
+			=> client?.Files.GetFriendlyDownloadUrl(dbName, client.Capabilities.BucketName);
+
+		/// <summary>
+		/// Retrieves the friendly download URL for a database if it exists on B2.
+		/// </summary>
+		/// <param name="dbName">The filename (with extension) of the database on the B2 bucket.</param>
+		/// <returns>The friendly download URL of the database on B2, if it exists.</returns>
+		public static string GetFriendlyUrl(string dbName)
+			=> GetFriendlyUrl(GetClient(), dbName);
+
+
+		/// <summary>
+		/// Creates a pre-authorized download URL for the database with <paramref name="dbName"/> that is valid for <paramref name="duration"/>.
+		/// </summary>
+		/// <param name="client">The <see cref="B2Client"/> created by <see cref="GetClient"/> with access to a bucket (hopefully containing the DB).</param>
+		/// <param name="dbName">The filename (with extension) of the database on the B2 bucket.</param>
+		/// <param name="duration">The duration (in seconds) for the link to be valid for. Defaults to 86400s (1 day), minimum of 1s, and maximum of 604800s (1 week).</param>
+		/// <returns>A pre-authorized download URL for the database.</returns>
+		public static async Task<string> GetDownloadUrlWithAuth(B2Client client, string dbName, int duration = 86400)
+			=> GetFriendlyUrl(client, dbName) + "?Authorization=" + (await client.Files.GetDownloadAuthorization(dbName, duration, client.Capabilities.BucketId)).AuthorizationToken;
+
+		/// <summary>
+		/// Creates a pre-authorized download URL for the database with <paramref name="dbName"/> that is valid for <paramref name="duration"/>.
+		/// </summary>
+		/// <param name="dbName">The filename (with extension) of the database on the B2 bucket.</param>
+		/// <param name="duration">The duration (in seconds) for the link to be valid for. Defaults to 86400s (1 day), minimum of 1s, and maximum of 604800s (1 week).</param>
+		/// <returns>A pre-authorized download URL for the database.</returns>
+		public static async Task<string> GetDownloadUrlWithAuth(string dbName, int duration = 86400)
+			=> await GetDownloadUrlWithAuth(GetClient(), dbName, duration);
 
 
 		/// <summary>

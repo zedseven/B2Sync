@@ -54,6 +54,12 @@
   <ItemGroup>
     <Compile Include="B2SyncExt.cs" />
     <Compile Include="Configuration.cs" />
+    <Compile Include="DownloadURLForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="DownloadURLForm.Designer.cs">
+      <DependentUpon>DownloadURLForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="Interface.cs" />
     <Compile Include="OptionsForm.cs">
       <SubType>Form</SubType>
@@ -74,12 +80,16 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="DownloadURLForm.resx">
+      <DependentUpon>DownloadURLForm.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="OptionsForm.resx">
       <DependentUpon>OptionsForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
