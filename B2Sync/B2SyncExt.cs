@@ -119,9 +119,6 @@ namespace B2Sync
 				case "applicationKeyInput":
 					_config.ApplicationKey = textBox.Text;
 					break;
-				case "bucketIdInput":
-					_config.BucketId = textBox.Text;
-					break;
 				default:
 					return;
 			}

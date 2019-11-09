@@ -3,13 +3,12 @@
 namespace B2Sync
 {
 	/// <summary>
-	/// Wraps the raw KeePass <see cref="AceCustomConfig"/> system with easier access to relevant configuration options.
+	/// Wraps the raw KeePass <see cref="AceCustomConfig" /> system with easier access to relevant configuration options.
 	/// </summary>
 	public sealed class Configuration
 	{
 		private const string KeyIdName = "B2SyncKeyId";
 		private const string ApplicationKeyName = "B2SyncApplicationKey";
-		private const string BucketIdName = "B2SyncBucketId";
 		private const string SyncOnSaveName = "B2SyncSyncOnSave";
 		private const string SyncOnLoadName = "B2SyncSyncOnLoad";
 
@@ -24,11 +23,6 @@ namespace B2Sync
 		{
 			get => _config.GetString(ApplicationKeyName, "");
 			set => _config.SetString(ApplicationKeyName, value);
-		}
-		public string BucketId
-		{
-			get => _config.GetString(BucketIdName, "");
-			set => _config.SetString(BucketIdName, value);
 		}
 		public bool SyncOnSave
 		{
@@ -49,7 +43,6 @@ namespace B2Sync
 				return;
 			_config.SetString(KeyIdName, "");
 			_config.SetString(ApplicationKeyName, "");
-			_config.SetString(BucketIdName, "");
 			_config.SetBool(SyncOnSaveName, false);
 			_config.SetBool(SyncOnLoadName, false);
 		}

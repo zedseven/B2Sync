@@ -22,7 +22,7 @@ namespace B2Sync
 
 			createUrlButton.Click += async delegate
 			{
-				string dbName = host.Database.Name + ".kdbx";
+				string dbName = Synchronization.GetDbFileName(host.Database);
 				int duration = Math.Max((int) Math.Round(durationInput.Value) * SecondsPerHour, 1);
 				downloadUrlDisplay.Text = await Synchronization.GetDownloadUrlWithAuth(dbName, duration);
 			};

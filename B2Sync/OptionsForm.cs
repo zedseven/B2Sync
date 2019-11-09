@@ -20,7 +20,6 @@ namespace B2Sync
 		{
 			applicationKeyInput.Text = _config.ApplicationKey;
 			keyIdInput.Text = _config.KeyId;
-			bucketIdInput.Text = _config.BucketId;
 		}
 
 		private void OptionsFormTextChanged(object sender, EventArgs e)
