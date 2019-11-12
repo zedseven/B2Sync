@@ -5,11 +5,11 @@ using KeePass.Plugins;
 
 namespace B2Sync
 {
-	public partial class DownloadURLForm : Form
+	public partial class DownloadUrlForm : Form
 	{
 		private const int SecondsPerHour = 3600;
 
-		public DownloadURLForm(IPluginHost host)
+		public DownloadUrlForm(IPluginHost host)
 		{
 			InitializeComponent();
 

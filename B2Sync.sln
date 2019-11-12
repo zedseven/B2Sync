@@ -5,6 +5,28 @@ VisualStudioVersion = 16.0.28803.352
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "B2Sync", "B2Sync\B2Sync.csproj", "{87F8A330-D0C1-41EB-BD42-633F28098C67}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Screenshots", "Screenshots", "{A8272C90-F0B5-4FE0-BE2D-01E30765E945}"
+	ProjectSection(SolutionItems) = preProject
+		Screenshots\B2MenuAppKeys.png = Screenshots\B2MenuAppKeys.png
+		Screenshots\B2NewAppKeyButton.png = Screenshots\B2NewAppKeyButton.png
+		Screenshots\B2NewAppKeyInfo.png = Screenshots\B2NewAppKeyInfo.png
+		Screenshots\B2NewAppKeyModal.png = Screenshots\B2NewAppKeyModal.png
+		Screenshots\KeePassPluginKeys.png = Screenshots\KeePassPluginKeys.png
+		Screenshots\KeePassPluginOptions.png = Screenshots\KeePassPluginOptions.png
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Documentation", "Documentation", "{55FF3935-40C7-461A-8251-87F174BAD397}"
+	ProjectSection(SolutionItems) = preProject
+		README.md = README.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Miscellaneous", "Miscellaneous", "{2C1D6798-AB86-4F76-97CA-102EB4FF5420}"
+	ProjectSection(SolutionItems) = preProject
+		.gitignore = .gitignore
+		build-plgx.bat = build-plgx.bat
+		NuGet.config = NuGet.config
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

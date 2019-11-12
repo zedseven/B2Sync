@@ -23,6 +23,8 @@ namespace B2Sync
 		}
 
 		private void OptionsFormTextChanged(object sender, EventArgs e)
-			=> _ext.OptionsFormTextChanged(sender, e);
+		{
+			_ext.OptionsFormTextChanged(sender, e);
+		}
 	}
 }

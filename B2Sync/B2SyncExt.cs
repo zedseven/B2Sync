@@ -89,7 +89,7 @@ namespace B2Sync
 			};
 			tsmiDownloadUrl.Click += delegate
 			{
-				DownloadURLForm friendlyUrlForm = new DownloadURLForm(_host);
+				DownloadUrlForm friendlyUrlForm = new DownloadUrlForm(_host);
 				friendlyUrlForm.ShowDialog();
 			};
 
@@ -103,7 +103,9 @@ namespace B2Sync
 		}
 
 		private async void OnSyncClicked(object sender, EventArgs e)
-			=> await Synchronization.SynchronizeDbAsync(_host);
+		{
+			await Synchronization.SynchronizeDbAsync(_host);
+		}
 
 		public void OptionsFormTextChanged(object sender, EventArgs e)
 		{

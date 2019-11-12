@@ -16,23 +16,23 @@ namespace B2Sync
 
 		public string KeyId
 		{
-			get => _config.GetString(KeyIdName, "");
-			set => _config.SetString(KeyIdName, value);
+			get { return _config.GetString(KeyIdName, ""); }
+			set { _config.SetString(KeyIdName, value); }
 		}
 		public string ApplicationKey
 		{
-			get => _config.GetString(ApplicationKeyName, "");
-			set => _config.SetString(ApplicationKeyName, value);
+			get { return _config.GetString(ApplicationKeyName, ""); }
+			set { _config.SetString(ApplicationKeyName, value); }
 		}
 		public bool SyncOnSave
 		{
-			get => _config.GetBool(SyncOnSaveName, false);
-			set => _config.SetBool(SyncOnSaveName, value);
+			get { return _config.GetBool(SyncOnSaveName, false); }
+			set { _config.SetBool(SyncOnSaveName, value); }
 		}
 		public bool SyncOnLoad
 		{
-			get => _config.GetBool(SyncOnLoadName, false);
-			set => _config.SetBool(SyncOnLoadName, value);
+			get { return _config.GetBool(SyncOnLoadName, false); }
+			set { _config.SetBool(SyncOnLoadName, value); }
 		}
 
 		public Configuration(AceCustomConfig config)

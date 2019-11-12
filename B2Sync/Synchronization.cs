@@ -52,7 +52,22 @@ namespace B2Sync
 				Interface.UpdateStatus("Unable to authenticate with Backblaze B2 servers. Please make sure the keys you are using are valid.");
 				return null;
 			}
-			catch (Exception e) when (e is SocketException || e is WebException || e is HttpRequestException || e is AggregateException)
+			catch (SocketException)
+			{
+				Interface.UpdateStatus("Unable to reach Backblaze B2 servers. Check your internet connection.");
+				return null;
+			}
+			catch (WebException)
+			{
+				Interface.UpdateStatus("Unable to reach Backblaze B2 servers. Check your internet connection.");
+				return null;
+			}
+			catch (HttpRequestException)
+			{
+				Interface.UpdateStatus("Unable to reach Backblaze B2 servers. Check your internet connection.");
+				return null;
+			}
+			catch (AggregateException)
 			{
 				Interface.UpdateStatus("Unable to reach Backblaze B2 servers. Check your internet connection.");
 				return null;
@@ -94,9 +109,9 @@ namespace B2Sync
 			Interface.UpdateStatus("Downloading database...");
 
 			//Download to memory
-			B2File file = await client.Files.DownloadByName(dbName, client.Capabilities.BucketName); //TODO: Investigate if this fails on credentials valid for more than one bucket at a time
+			B2File file = await client.Files.DownloadByName(dbName, client.Capabilities.BucketName);
 
-			if (file.Size <= 0) //TODO: Might need to find an alternate way to check for file existence
+			if (file.Size <= 0)
 			{
 				Interface.UpdateStatus("The database does not exist on B2 to download.");
 				return null;
@@ -126,7 +141,10 @@ namespace B2Sync
 		/// </summary>
 		/// <param name="dbName">The filename (with extension) of the database to download from the B2 bucket.</param>
 		/// <returns>The filepath where the database was downloaded to temporarily, or <see langword="null" /> if the download failed.</returns>
-		public static async Task<string> DownloadDbAsync(string dbName) => await DownloadDbAsync(GetClient(), dbName);
+		public static async Task<string> DownloadDbAsync(string dbName)
+		{
+			return await DownloadDbAsync(GetClient(), dbName);
+		}
 
 
 		/// <summary>
@@ -162,7 +180,22 @@ namespace B2Sync
 				B2File file = await client.Files.Upload(fileData, Path.GetFileName(localPath), uploadUrl, true,
 					client.Capabilities.BucketId);
 			}
-			catch (Exception e) when (e is SocketException || e is WebException || e is HttpRequestException || e is AggregateException)
+			catch (SocketException)
+			{
+				Interface.UpdateStatus("Unable to upload the database to B2.");
+				return false;
+			}
+			catch (WebException)
+			{
+				Interface.UpdateStatus("Unable to upload the database to B2.");
+				return false;
+			}
+			catch (HttpRequestException)
+			{
+				Interface.UpdateStatus("Unable to upload the database to B2.");
+				return false;
+			}
+			catch (AggregateException)
 			{
 				Interface.UpdateStatus("Unable to upload the database to B2.");
 				return false;
@@ -178,7 +211,10 @@ namespace B2Sync
 		/// </summary>
 		/// <param name="localDb">The local database to upload.</param>
 		/// <returns><see langword="true" /> if the upload was successful, or <see langword="false" /> otherwise.</returns>
-		public static async Task<bool> UploadDbAsync(PwDatabase localDb) => await UploadDbAsync(GetClient(), localDb);
+		public static async Task<bool> UploadDbAsync(PwDatabase localDb)
+		{
+			return await UploadDbAsync(GetClient(), localDb);
+		}
 
 
 		/// <summary>
@@ -255,7 +291,9 @@ namespace B2Sync
 		/// <param name="host">The <see cref="IPluginHost" /> that hosts the currently-running instance of <see cref="B2SyncExt" />.</param>
 		/// <returns><see langword="true" /> if the synchronization was successful, or <see langword="false" /> otherwise.</returns>
 		public static async Task<bool> SynchronizeDbAsync(IPluginHost host)
-			=> await SynchronizeDbAsync(GetClient(), host);
+		{
+			return await SynchronizeDbAsync(GetClient(), host);
+		}
 
 
 		/// <summary>
@@ -265,7 +303,9 @@ namespace B2Sync
 		/// <param name="dbName">The filename (with extension) of the database on the B2 bucket.</param>
 		/// <returns>The friendly download URL of the database on B2, if it exists.</returns>
 		public static string GetFriendlyUrl(B2Client client, string dbName)
-			=> client?.Files.GetFriendlyDownloadUrl(dbName, client.Capabilities.BucketName);
+		{
+			return client != null ? client.Files.GetFriendlyDownloadUrl(dbName, client.Capabilities.BucketName) : null;
+		}
 
 		/// <summary>
 		/// Retrieves the friendly download URL for a database if it exists on B2.
@@ -273,7 +313,9 @@ namespace B2Sync
 		/// <param name="dbName">The filename (with extension) of the database on the B2 bucket.</param>
 		/// <returns>The friendly download URL of the database on B2, if it exists.</returns>
 		public static string GetFriendlyUrl(string dbName)
-			=> GetFriendlyUrl(GetClient(), dbName);
+		{
+			return GetFriendlyUrl(GetClient(), dbName);
+		}
 
 
 		/// <summary>
@@ -284,10 +326,13 @@ namespace B2Sync
 		/// <param name="duration">The duration (in seconds) for the link to be valid for. Defaults to 86400s (1 day), minimum of 1s, and maximum of 604800s (1 week).</param>
 		/// <returns>A pre-authorized download URL for the database.</returns>
 		public static async Task<string> GetDownloadUrlWithAuth(B2Client client, string dbName, int duration = 86400)
-			=> client == null ? null
+		{
+			return client == null
+				? null
 				: GetFriendlyUrl(client, dbName) + "?Authorization=" +
 				  (await client.Files.GetDownloadAuthorization(dbName, duration, client.Capabilities.BucketId))
 				  .AuthorizationToken;
+		}
 
 		/// <summary>
 		/// Creates a pre-authorized download URL for the database with <paramref name="dbName" /> that is valid for <paramref name="duration" />.
@@ -297,7 +342,9 @@ namespace B2Sync
 		/// <param name="duration">The duration (in seconds) for the link to be valid for. Defaults to 86400s (1 day), minimum of 1s, and maximum of 604800s (1 week).</param>
 		/// <returns>A pre-authorized download URL for the database.</returns>
 		public static async Task<string> GetDownloadUrlWithAuth(string dbName, int duration = 86400)
-			=> await GetDownloadUrlWithAuth(GetClient(), dbName, duration);
+		{
+			return await GetDownloadUrlWithAuth(GetClient(), dbName, duration);
+		}
 
 
 		/// <summary>
@@ -306,7 +353,9 @@ namespace B2Sync
 		/// <param name="db">The password database to get the filename of.</param>
 		/// <returns>The filename of <paramref name="db" />.</returns>
 		public static string GetDbFileName(PwDatabase db)
-			=> Path.GetFileName(db.IOConnectionInfo.Path);
+		{
+			return Path.GetFileName(db.IOConnectionInfo.Path);
+		}
 
 
 		/// <summary>
@@ -328,7 +377,10 @@ namespace B2Sync
 		/// </summary>
 		/// <param name="path">The location on disk of the file to compute the hash of.</param>
 		/// <returns>The SHA1 hash of the file at <paramref name="path" /> in string (hex) format for quick comparison.</returns>
-		private static string HashFileOnDisk(string path) => Hash(File.ReadAllBytes(path));
+		private static string HashFileOnDisk(string path)
+		{
+			return Hash(File.ReadAllBytes(path));
+		}
 
 
 		/// <summary>
@@ -339,6 +391,8 @@ namespace B2Sync
 		/// <param name="second">An <see cref="IEnumerable{T}" /> that may fully contain <paramref name="first" />.</param>
 		/// <returns>Whether or not <paramref name="first" /> is a subset of <paramref name="second" />.</returns>
 		private static bool IsSubsetOf<TSource>(this IEnumerable<TSource> first, IEnumerable<TSource> second)
-			=> !first.Except(second).Any();
+		{
+			return !first.Except(second).Any();
+		}
 	}
 }

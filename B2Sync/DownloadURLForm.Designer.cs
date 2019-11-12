@@ -1,6 +1,6 @@
 ﻿namespace B2Sync
 {
-	partial class DownloadURLForm
+	partial class DownloadUrlForm
 	{
 		/// <summary>
 		/// Required designer variable.

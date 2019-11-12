@@ -24,6 +24,9 @@ namespace B2Sync
 		/// Updates the UI status along the bottom of the window in KeePass with <paramref name="message" />.
 		/// </summary>
 		/// <param name="message">The message to update the status with.</param>
-		public static void UpdateStatus(string message) => _host.MainWindow.SetStatusEx("B2Sync: " + message);
+		public static void UpdateStatus(string message)
+		{
+			_host.MainWindow.SetStatusEx("B2Sync: " + message);
+		}
 	}
 }
