@@ -47,30 +47,21 @@ namespace B2Sync
 			{
 				client = new B2Client(_config.KeyId, _config.ApplicationKey);
 			}
-			catch (AuthorizationException)
+			catch (Exception e)
 			{
-				Interface.UpdateStatus("Unable to authenticate with Backblaze B2 servers. Please make sure the keys you are using are valid.");
-				return null;
-			}
-			catch (SocketException)
-			{
-				Interface.UpdateStatus("Unable to reach Backblaze B2 servers. Check your internet connection.");
-				return null;
-			}
-			catch (WebException)
-			{
-				Interface.UpdateStatus("Unable to reach Backblaze B2 servers. Check your internet connection.");
-				return null;
-			}
-			catch (HttpRequestException)
-			{
-				Interface.UpdateStatus("Unable to reach Backblaze B2 servers. Check your internet connection.");
-				return null;
-			}
-			catch (AggregateException)
-			{
-				Interface.UpdateStatus("Unable to reach Backblaze B2 servers. Check your internet connection.");
-				return null;
+				if (e.GetType() == typeof(AuthorizationException))
+				{
+					Interface.UpdateStatus("Unable to authenticate with Backblaze B2 servers. Please make sure the keys you are using are valid.");
+					return null;
+				}
+
+				if (new[] { typeof(SocketException), typeof(WebException), typeof(HttpRequestException), typeof(AggregateException), typeof(InvalidOperationException) }.Contains(e.GetType()))
+				{
+					Interface.UpdateStatus("Unable to reach Backblaze B2 servers. Check your internet connection.");
+					return null;
+				}
+
+				throw;
 			}
 
 			//Verify that the credentials being used are specific to a single bucket, and that we know what that bucket is
@@ -180,25 +171,15 @@ namespace B2Sync
 				B2File file = await client.Files.Upload(fileData, Path.GetFileName(localPath), uploadUrl, true,
 					client.Capabilities.BucketId);
 			}
-			catch (SocketException)
+			catch (Exception e)
 			{
-				Interface.UpdateStatus("Unable to upload the database to B2.");
-				return false;
-			}
-			catch (WebException)
-			{
-				Interface.UpdateStatus("Unable to upload the database to B2.");
-				return false;
-			}
-			catch (HttpRequestException)
-			{
-				Interface.UpdateStatus("Unable to upload the database to B2.");
-				return false;
-			}
-			catch (AggregateException)
-			{
-				Interface.UpdateStatus("Unable to upload the database to B2.");
-				return false;
+				if (new [] { typeof(SocketException), typeof(WebException), typeof(HttpRequestException), typeof(AggregateException), typeof(InvalidOperationException) }.Contains(e.GetType()))
+				{
+					Interface.UpdateStatus("Unable to upload the database to B2.");
+					return false;
+				}
+
+				throw;
 			}
 
 			Interface.UpdateStatus("Database upload successful.");
