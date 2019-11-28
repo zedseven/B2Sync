@@ -100,9 +100,12 @@ namespace B2Sync
 			Interface.UpdateStatus("Downloading database...");
 
 			//Download to memory
-			B2File file = await client.Files.DownloadByName(dbName, client.Capabilities.BucketName);
-
-			if (file.Size <= 0)
+			B2File file;
+			try
+			{
+				file = await client.Files.DownloadByName(dbName, client.Capabilities.BucketName);
+			}
+			catch (B2Exception)
 			{
 				Interface.UpdateStatus("The database does not exist on B2 to download.");
 				return null;

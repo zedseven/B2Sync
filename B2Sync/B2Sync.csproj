@@ -30,6 +30,10 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>
+    </ApplicationIcon>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="B2.Net, Version=0.7.1.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>Packages\B2Net.0.7.2\lib\net45\B2.Net.dll</HintPath>

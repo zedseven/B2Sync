@@ -2,6 +2,7 @@
 using KeePass.Forms;
 using KeePass.Plugins;
 using System;
+using System.Drawing;
 using System.Windows.Forms;
 
 namespace B2Sync
@@ -14,6 +15,11 @@ namespace B2Sync
 		private IPluginHost _host;
 
 		private Configuration _config;
+
+		public override Image SmallIcon
+		{
+			get { return Resources.MenuIcon; }
+		}
 
 		public override bool Initialize(IPluginHost host)
 		{
