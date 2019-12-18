@@ -4,6 +4,7 @@ using KeePass.Plugins;
 using System;
 using System.Drawing;
 using System.Windows.Forms;
+using KeePass.Util;
 
 namespace B2Sync
 {
@@ -16,10 +17,9 @@ namespace B2Sync
 
 		private Configuration _config;
 
-		public override Image SmallIcon
-		{
-			get { return Resources.MenuIcon; }
-		}
+		public override Image SmallIcon { get { return Resources.MenuIcon; } }
+
+		public override string UpdateUrl { get { return "https://ztdp.ca/utility/keepass-plugins-ztdp.txt.gz"; } }
 
 		public override bool Initialize(IPluginHost host)
 		{
@@ -27,6 +27,10 @@ namespace B2Sync
 
 			_host = host;
 			_config = new Configuration(_host.CustomConfig);
+
+			//Set the version information file signature
+			UpdateCheckEx.SetFileSigKey(UpdateUrl, Resources.B2SyncExt_UpdateCheckFileSigKey);
+
 			Interface.Init(_host);
 			Synchronization.Init(_config);
 
